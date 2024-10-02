@@ -72,7 +72,6 @@ int Layer2Vector_Init(Layer2Vector_t* _vector){
 }
 int Layer2Vector_insert(Layer2Vector_t* _vector,const char* _key, const char* _value){
     if(_vector == NULL || _vector->size == MAX_INTERFACES || _key == NULL || _value == NULL) return -1;
-	fprintf(stdout,"[%d][%s][%s]\n",_vector->size,_key,_value);
 	size_t _keylen = strlen(_key) + 1;
 	size_t _valuelen = strlen(_value) + 1;
 	_keylen = _keylen > MAX_KEY_SIZE + 1 ? MAX_KEY_SIZE + 1 : _keylen;
@@ -702,7 +701,6 @@ int GenID_VerifyUsingSecurityKey(void){
 						char _rsecret[255];
 						if(GenID_SecurityKey_CheckResp(&security_key,request_id,_rsecret)){
 							if(strcasecmp(device_register_id,_rsecret) == 0){
-								fprintf(stdout, "[I] [SecurityKey Authenticated]\n");
 								is_authenticated = 1;
 								//! Clean Up
 								libusb_exit(app_contex);
@@ -714,7 +712,7 @@ int GenID_VerifyUsingSecurityKey(void){
 				is_done = true;
 			}
 			libusb_exit(app_contex);
-		}else fprintf(stderr, "[E] [libusb_init] %s\n", strerror(errno));
+		}else fprintf(stderr, "[E] [GenID_VerifyUsingSecurityKey] %s\n", strerror(errno));
 		sleep(10);
 	}
 	return is_authenticated;
@@ -976,7 +974,6 @@ int GenID_DoCheckRegister(const char* _layers2json,const char* _reg_id){
 			if(curl_err == CURLE_OK && HTTPcode == 200){
 				//! Dump again,
 				GenID_Dump(GNID_VERIFICATION_FILEPATH,_layers2json);
-                fprintf(stdout,"%s",_reg_id);
 				retcode = 1;
 			}else{
                 fprintf(stderr,"Error While Firewall Registration Verification: %s\n",HTTPData);
@@ -1053,6 +1050,10 @@ int GenID_VerifyOffline(const Layer2Vector_t* _genaddrs){
 	Layer2Vector_t _fileaddrs;
 	Layer2Vector_Init(&_fileaddrs);
 	if(GenID_GetAllEthernetAddressesFromFile(&_fileaddrs) && _fileaddrs.size >= 2){
+		//#ifdef DEBUG_GENID
+		fprintf(stdout,"GenID_VerifyOffline:\n");
+		Layer2Vector_PrintAll(&_fileaddrs);
+		//#endif
 		size_t l2_match_count = 0;
 		for(int i = 0; i < _genaddrs->size; i++){
 			for(int j = 0; j < _fileaddrs.size; j++)
