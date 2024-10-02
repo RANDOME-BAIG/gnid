@@ -53,7 +53,7 @@
 #define GNID_REGISTER_ID_FILEPATH "/var/db/id.db"
 #define GNID_REGISTER_EXPIRE_FILEPATH "/var/db/eid.db"
 #define GNID_VERIFICATION_FILEPATH "/var/db/fw.json"
-//#define DEBUG_GENID
+#define DEBUG_GENID
 //! cc fwid.c -o fwid -lcrypto -ljson-c -lcurl -lusb -L/usr/local/lib -I/usr/local/include
 
 
