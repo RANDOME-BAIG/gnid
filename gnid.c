@@ -53,7 +53,7 @@
 #define GNID_REGISTER_ID_FILEPATH "/var/db/id.db"
 #define GNID_REGISTER_EXPIRE_FILEPATH "/var/db/eid.db"
 #define GNID_VERIFICATION_FILEPATH "/var/db/fw.json"
-#define DEBUG_GENID
+//#define DEBUG_GENID
 //! cc fwid.c -o fwid -lcrypto -ljson-c -lcurl -lusb -L/usr/local/lib -I/usr/local/include
 
 
@@ -973,8 +973,10 @@ int GenID_DoCheckRegister(const char* _layers2json,const char* _reg_id){
 			
 			if(curl_err == CURLE_OK && HTTPcode == 200){
 				//! Dump again,
-				GenID_Dump(GNID_VERIFICATION_FILEPATH,_layers2json);
-				retcode = 1;
+				#ifdef DEBUG_GENID
+				fprintf(stdout,"%s\n",_layers2json);
+				#endif
+				if(GenID_Dump(GNID_VERIFICATION_FILEPATH,_layers2json) retcode = 1;
 			}else{
                 fprintf(stderr,"Error While Firewall Registration Verification: %s\n",HTTPData);
             }
