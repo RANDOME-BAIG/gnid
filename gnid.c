@@ -71,7 +71,7 @@ int Layer2Vector_Init(Layer2Vector_t* _vector){
     return 0;
 }
 int Layer2Vector_insert(Layer2Vector_t* _vector,const char* _key, const char* _value){
-    if(_vector == NULL || _vector->size == MAX_INTERFACES || _key == NULL || _value == NULL) return -1;
+    if(_vector == NULL || _vector->size == MAX_INTERFACES || _key == NULL || _value == NULL) return 0;
 	size_t _keylen = strlen(_key) + 1;
 	size_t _valuelen = strlen(_value) + 1;
 	_keylen = _keylen > MAX_KEY_SIZE + 1 ? MAX_KEY_SIZE + 1 : _keylen;
@@ -82,9 +82,9 @@ int Layer2Vector_insert(Layer2Vector_t* _vector,const char* _key, const char* _v
 		snprintf(_vector->data[_vector->size].key,_keylen,"%s",_key);
 		snprintf(_vector->data[_vector->size].value,_valuelen,"%s",_value);
 		_vector->size++;
-		return 0;
+		return 1;
 	}
-    return -1;
+    return 0;
 }
 KeyValue_t Layer2Vector_remove(Layer2Vector_t* _vector){
 	KeyValue_t _item = {NULL, NULL};
@@ -976,7 +976,7 @@ int GenID_DoCheckRegister(const char* _layers2json,const char* _reg_id){
 				#ifdef DEBUG_GENID
 				fprintf(stdout,"%s\n",_layers2json);
 				#endif
-				if(GenID_Dump(GNID_VERIFICATION_FILEPATH,_layers2json) retcode = 1;
+				if(GenID_Dump(GNID_VERIFICATION_FILEPATH,_layers2json)) retcode = 1;
 			}else{
                 fprintf(stderr,"Error While Firewall Registration Verification: %s\n",HTTPData);
             }
@@ -1024,7 +1024,7 @@ int GenID_GetAllEthernetAddressesFromFile(Layer2Vector_t* _addrs){
     struct json_object* l2_list;
     int count = 0;
     if(__root){
-		if(json_object_object_get_ex(__root, "Authlayer",&l2_list)){
+		if(json_object_object_get_ex(__root, "AuthLayer",&l2_list)){
 			if(json_object_get_type(l2_list) == json_type_array){
 				int l2_size = json_object_array_length(l2_list);
 				for(int i = 0; i < l2_size && i < MAX_INTERFACES; i++){
@@ -1034,7 +1034,9 @@ int GenID_GetAllEthernetAddressesFromFile(Layer2Vector_t* _addrs){
 							struct json_object_iterator h = json_object_iter_begin(element);
 							struct json_object_iterator t = json_object_iter_end(element);
 							if(!json_object_iter_equal(&h,&t)){
-								if(!Layer2Vector_insert(_addrs,json_object_iter_peek_name(&h),json_object_get_string(json_object_iter_peek_value(&h)))) break;
+								if(!Layer2Vector_insert(_addrs,json_object_iter_peek_name(&h),json_object_get_string(json_object_iter_peek_value(&h)))){
+									break;
+								} 
 							}
 						}
 					}
@@ -1052,10 +1054,10 @@ int GenID_VerifyOffline(const Layer2Vector_t* _genaddrs){
 	Layer2Vector_t _fileaddrs;
 	Layer2Vector_Init(&_fileaddrs);
 	if(GenID_GetAllEthernetAddressesFromFile(&_fileaddrs) && _fileaddrs.size >= 2){
-		//#ifdef DEBUG_GENID
+		#ifdef DEBUG_GENID
 		fprintf(stdout,"GenID_VerifyOffline:\n");
 		Layer2Vector_PrintAll(&_fileaddrs);
-		//#endif
+		#endif
 		size_t l2_match_count = 0;
 		for(int i = 0; i < _genaddrs->size; i++){
 			for(int j = 0; j < _fileaddrs.size; j++)
@@ -1068,4 +1070,3 @@ int GenID_VerifyOffline(const Layer2Vector_t* _genaddrs){
 	Layer2Vector_DeInit(&_fileaddrs);
 	return 0;
 }
-
