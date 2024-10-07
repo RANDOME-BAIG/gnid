@@ -40,6 +40,14 @@
 #include <sys/sysctl.h>
 #include <inttypes.h>
 #include <sys/wait.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <sys/disk.h>
+#include <string.h>
+#include <errno.h>
 
 
 #define CRC64_POLY 0x42F0E1EBA9EA3693ULL
@@ -155,6 +163,7 @@ typedef struct{
 #define BULK_EP_IN      0x01
 
 int GenID_ReadUUID(char*);
+int GenID_ReadUUID_Ex(char*);
 int GenID_CalcCRC64(const uint8_t*, const size_t, uint64_t*);
 int GenID_CalcKey(const uint8_t*, const size_t,char**);
 int GenID_CalcDigest(uint8_t*,size_t,uint8_t*,size_t, char**);
@@ -717,6 +726,25 @@ int GenID_VerifyUsingSecurityKey(void){
 	}
 	return is_authenticated;
 }
+int GenID_ReadUUID_Ex(char* _uuid){
+	if(_uuid){
+		char tmp[DISK_IDENT_SIZE] = {0};
+		int fd = open("/dev/ada0",O_RDONLY);
+		if(fd < 0){
+            fprintf(stderr, "[E] Failed to Open Disk: %s\n", strerror(errno));
+            return 0;
+		}
+		if (ioctl(fd, DIOCGIDENT,tmp) < 0) {
+            fprintf(stderr, "[E] Failed to Read UUID: %s\n", strerror(errno));
+            close(fd);
+            return 0;
+        }
+		strcpy(_uuid, tmp);
+		close(fd);
+		return 1;
+	}
+	return 0;
+}
 int GenID_ReadUUID(char* _uuid){
     if(_uuid){
         int _mib[2];
@@ -727,6 +755,7 @@ int GenID_ReadUUID(char* _uuid){
         if(sysctl(_mib, 2, _m_uuid, &_uuid_size, NULL, 0) != -1){
             _m_uuid[_uuid_size] = '\0';
             strcpy(_uuid, _m_uuid);
+			fprintf(stdout,"[GenID_ReadUUID] %s\n",_uuid);
             return 1;
         }
     }
@@ -839,9 +868,9 @@ int GenID_GetJsonOf(const Layer2Vector_t* _addr, char* _json, const size_t _json
 }
 int GenID_GetScrambledEggs(int* _eggs, const size_t _eggs_max){
 	if(_eggs == NULL || _eggs_max == 0) return 0;
-	char _local_uuid[40];
+	char _local_uuid[DISK_IDENT_SIZE];
 	uint64_t _local_uuid_crc = 0;
-	if(GenID_ReadUUID(_local_uuid) && GenID_CalcCRC64((uint8_t*)_local_uuid,strlen(_local_uuid),&_local_uuid_crc)){
+	if(GenID_ReadUUID_Ex(_local_uuid) && GenID_CalcCRC64((uint8_t*)_local_uuid,strlen(_local_uuid),&_local_uuid_crc)){
         srand(_local_uuid_crc);
 		for(int i = 0; i < _eggs_max; i++) _eggs[i] = rand();
 		return 1;
