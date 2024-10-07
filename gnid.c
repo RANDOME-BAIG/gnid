@@ -61,6 +61,8 @@
 #define GNID_REGISTER_ID_FILEPATH "/var/db/id.db"
 #define GNID_REGISTER_EXPIRE_FILEPATH "/var/db/eid.db"
 #define GNID_VERIFICATION_FILEPATH "/var/db/fw.json"
+#define GNID_DIGEST_SIZE     32U
+#define GNID_TRUNCATE_TOKEN_SIZE 16U
 //#define DEBUG_GENID
 //! cc gnid.c -o gnid -lcrypto -ljson-c -lcurl -lusb -L/usr/local/lib -I/usr/local/include
 
@@ -188,6 +190,7 @@ int GenID_PHP_RunScript(const char*);
 void GenID_DisplayLANConfigurationMenu(void);
 int GenID_IsSecurityConnected(libusb_context*);
 int GenID_VerifyUsingSecurityKey(void);
+int GenID_GenerateToken(void);
 
 
 int main(int argc, char* argv[]){
@@ -237,8 +240,57 @@ int main(int argc, char* argv[]){
 				}
 				Layer2Vector_DeInit(&orignal_addrs);
 			}
+		}else if(strlen(argv[1]) == 1 && strcmp(argv[1],"g") == 0){
+			fprintf(stdout,"Token Generation[%s]\n",GenID_GenerateToken()? "Success":"Failure");
 		}
     }
+    return 0;
+}
+int GenID_GenerateToken(void){
+	uint8_t _tmp_itoken[GNID_DIGEST_SIZE];
+	uint8_t _tmp_digest[GNID_DIGEST_SIZE];
+	uint8_t _tmp_otoken[GNID_TRUNCATE_TOKEN_SIZE];
+	time_t _ctime = time(NULL);
+	srand(_ctime);
+	for(int i = 0; i < sizeof(_tmp_itoken); i++){
+		_tmp_itoken[i] = rand();
+	}
+	if(SHA256(_tmp_itoken,GNID_DIGEST_SIZE,_tmp_digest) != NULL){
+		_tmp_otoken[0] = _tmp_digest[0] ^ _tmp_digest[2];
+		_tmp_otoken[1] = _tmp_digest[4] ^ _tmp_digest[6];
+		_tmp_otoken[2] = _tmp_digest[8] ^ _tmp_digest[10];
+		_tmp_otoken[3] = _tmp_digest[12] ^ _tmp_digest[14];
+		_tmp_otoken[4] = _tmp_digest[16] ^ _tmp_digest[18];
+		_tmp_otoken[5] = _tmp_digest[20] ^ _tmp_digest[22];
+		_tmp_otoken[6] = _tmp_digest[24] ^ _tmp_digest[26];
+		_tmp_otoken[7] = _tmp_digest[28] ^ _tmp_digest[30];
+		_tmp_otoken[8] = _tmp_digest[31] ^ _tmp_digest[29];
+		_tmp_otoken[9] = _tmp_digest[27] ^ _tmp_digest[25];
+		_tmp_otoken[10] = _tmp_digest[23] ^ _tmp_digest[21];
+		_tmp_otoken[11] = _tmp_digest[19] ^ _tmp_digest[17];
+		_tmp_otoken[12] = _tmp_digest[15] ^ _tmp_digest[13];
+		_tmp_otoken[13] = _tmp_digest[11] ^ _tmp_digest[9];
+		_tmp_otoken[14] = _tmp_digest[7] ^ _tmp_digest[5];
+		_tmp_otoken[15] = _tmp_digest[3] ^ _tmp_digest[1];
+		char* data = (char*)malloc(GNID_TRUNCATE_TOKEN_SIZE*2+1);
+		if(data){
+			int i = 0;
+			char* ptr = data;
+			while(i < GNID_TRUNCATE_TOKEN_SIZE){
+				sprintf(ptr,"%02x",_tmp_otoken[i]);
+				ptr += 2;
+				i++;
+			}
+			ptr = NULL;
+			if(GenID_Dump(GNID_ACCESS_TOKEN_FILEPATH,data)){
+				free(data);
+				return 1;
+			}else{
+				free(data);
+				return 0;
+			}
+		}
+	}
     return 0;
 }
 int GenID_SecurityKey_WriteFrame(SecurityKey_t* _device_key,uint8_t* _frame, uint8_t _framelen){
