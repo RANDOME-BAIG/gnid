@@ -1061,7 +1061,7 @@ int GenID_DoCheckRegister(const char* _layers2json,const char* _reg_id){
 	//! Check Internet Availability
         int sleep_duration = 0;
         for(int i = 0; i < MAX_TRIES; i++){
-                if(GenID_CheckInternetConnection){
+                if(GenID_CheckInternetConnection()){
                         retcode = 1;
                         break;
                 }
