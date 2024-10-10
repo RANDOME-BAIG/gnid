@@ -166,6 +166,7 @@ typedef struct{
 #define MAX_TRIES 3
 #define MIN_RANGE_DELAY 40
 #define MAX_RANGE_DELAY 70
+#define INTERNET_CHECK_HOST "pool.ntp.org"
 
 int GenID_ReadUUID(char*);
 int GenID_ReadUUID_Ex(char*);
