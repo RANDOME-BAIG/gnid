@@ -163,6 +163,9 @@ typedef struct{
 //! USB Endpoints
 #define BULK_EP_OUT     0x81
 #define BULK_EP_IN      0x01
+#define MAX_TRIES 3
+#define MIN_RANGE_DELAY 40
+#define MAX_RANGE_DELAY 70
 
 int GenID_ReadUUID(char*);
 int GenID_ReadUUID_Ex(char*);
@@ -191,6 +194,7 @@ void GenID_DisplayLANConfigurationMenu(void);
 int GenID_IsSecurityConnected(libusb_context*);
 int GenID_VerifyUsingSecurityKey(void);
 int GenID_GenerateToken(void);
+int GenID_CheckInternetConnection(void);
 
 
 int main(int argc, char* argv[]){
@@ -246,6 +250,33 @@ int main(int argc, char* argv[]){
 		}
     }
     return 0;
+}
+int GenID_CheckInternetConnection(void){
+    int socketfd;
+    uint8_t packet[48];
+    bzero(packet,sizeof(packet));
+    //! craft packet
+    packet[0] = 0x1b;
+    socketfd = socket(PF_INET,SOCK_DGRAM,IPPROTO_UDP);
+    if(socketfd > -1){
+       //! setup ip,port
+        struct sockaddr_in server_addr;
+        server_addr.sin_family = PF_INET;
+        server_addr.sin_port = htons(123);
+        struct hostent *serv_info = NULL;
+        serv_info = gethostbyname(INTERNET_CHECK_HOST);
+        if(serv_info != NULL){
+            bcopy((char*)serv_info->h_addr,(char*)&server_addr.sin_addr.s_addr, serv_info->h_length);
+            if(connect(socketfd,(struct sockaddr*)&server_addr,sizeof(server_addr)) == 0)
+                if(write(socketfd,packet,sizeof(packet)) == sizeof(packet))
+                    if(read(socketfd,packet,sizeof(packet)) == sizeof(packet)){
+		        close(socketfd);
+                        return 1;
+		    }
+                }
+                close(socketfd);
+        }
+        return 0;
 }
 int GenID_GenerateToken(void){
 	uint8_t _tmp_itoken[GNID_DIGEST_SIZE];
@@ -1026,6 +1057,16 @@ int GenID_DoRegister(const char* _layers2json,const char* _access_token){
 int GenID_DoCheckRegister(const char* _layers2json,const char* _reg_id){
     int retcode = 0;
     if(_layers2json && _reg_id){
+	//! Check Internet Availability
+        int sleep_duration = 0;
+        for(int i = 0; i < MAX_TRIES; i++){
+                if(GenID_CheckInternetConnection){
+                        retcode = 1;
+                        break;
+                }
+                sleep_duration = (rand() % (MAX_RANGE_DELAY - MIN_RANGE_DELAY + 1)) + MIN_RANGE_DELAY;
+                sleep(sleep_duration);
+        } 
         CURL *curl_handle;
         CURLcode curl_err;
         curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -1038,7 +1079,7 @@ int GenID_DoCheckRegister(const char* _layers2json,const char* _reg_id){
         fprintf(stdout,"%s\n",HTTPEndpoint);
         #endif
 	    
-	    if(curl_handle){    
+	    if(retcode && curl_handle){    
 			curl_easy_setopt(curl_handle, CURLOPT_URL, HTTPEndpoint);
 			curl_easy_setopt(curl_handle, CURLOPT_POST, 1L);
 			curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS,_layers2json);
