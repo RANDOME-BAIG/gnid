@@ -200,8 +200,8 @@ int main(int argc, char* argv[]){
 			fprintf(stdout,"%s",regid);
 		}
     }else if(argc == 2){
-		char flag[4] = {0};
-        if(strlen(argv[1]) == 1 && strcmp(argv[1],"r") == 0 || strcmp(argv[1],"v") == 0){
+		char flag[16] = {0};
+        if(strlen(argv[1]) == 13 && strcmp(argv[1],"thingzeye-reg") == 0 || strcmp(argv[1],"thingzeye-ver") == 0){
             snprintf(flag,sizeof(flag), "%s",argv[1]);
 			char access_token[100];
 			if(GenID_Load(GNID_ACCESS_TOKEN_FILEPATH,access_token,sizeof(access_token))){
@@ -221,9 +221,9 @@ int main(int argc, char* argv[]){
 						#ifdef DEBUG_GENID
 						fprintf(stdout,"%s\n",layers2json_str);
 						#endif
-						if(strcmp(flag,"r") == 0 && GenID_DoRegister(layers2json_str,access_token)){
+						if(strcmp(flag,"thingzeye-reg") == 0 && GenID_DoRegister(layers2json_str,access_token)){
 							fprintf(stdout,"Registration Success...\n");
-						}else if(strcmp(flag,"v") == 0){
+						}else if(strcmp(flag,"thingzeye-ver") == 0){
 							if(GenID_VerifyOffline(&orignal_addrs)){
 								fprintf(stdout,"[offline] Authentication Successful\n");
 							}else if(GenID_Load(GNID_REGISTER_ID_FILEPATH,registration_id,sizeof(registration_id)) && GenID_DoCheckRegister(layers2json_str,registration_id)){
@@ -234,13 +234,14 @@ int main(int argc, char* argv[]){
 								//! Clear
 								Layer2Vector_DeInit(&orignal_addrs);
 								fprintf(stderr,"Rebooting...\n");
+								reboot(RB_AUTOBOOT);
 							}
 						}
 					}
 				}
 				Layer2Vector_DeInit(&orignal_addrs);
 			}
-		}else if(strlen(argv[1]) == 1 && strcmp(argv[1],"g") == 0){
+		}else if(strlen(argv[1]) == 13 && strcmp(argv[1],"thingzeye-gen") == 0){
 			fprintf(stdout,"Token Generation[%s]\n",GenID_GenerateToken()? "Success":"Failure");
 		}
     }
